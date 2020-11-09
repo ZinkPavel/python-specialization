@@ -5,29 +5,52 @@ import json
 import tempfile
 
 
-my_dict = dict()
-storage_path = os.path.join(tempfile.gettempdirb(), b'storage.data')
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--key')
+    parser.add_argument('--val')
 
-if not os.path.isfile(storage_path):
-    os.system(f"touch {storage_path.decode('ascii')}")
+    return parser.parse_args(sys.argv[1:])
 
-with open(storage_path, 'r') as file:
-    file_data = file.read()
 
-    if file.tell() > 0:
-        my_dict = json.loads(file_data)
+def read_data(file_path):
+    if not os.path.exists(file_path):
+        return dict()
 
-if len(sys.argv) == 3:
-    if not my_dict.get(sys.argv[2]):
-        print(my_dict.get(sys.argv[2]))
+    with open(file_path, 'r') as file:
+        file_data = file.read()
+        if file.tell() > 0:
+            return json.loads(file_data)
+        return dict()
+
+
+def write_data(file_path, data):
+    with open(file_path, 'w') as file:
+        file.write(json.dumps(data))
+
+
+def put(file_path, key, value):
+    data = read_data(file_path)
+    data[key] = data.get(key, list())
+    data[key].append(value)
+    write_data(file_path, data)
+
+
+def get(file_path, key):
+    data = read_data(file_path)
+    return data.get(key, list())
+
+
+def main(args, storage_path):
+    if args.key and args.val:
+        put(storage_path, args.key, args.val)
+    elif args.key:
+        print(*get(storage_path, args.key), sep=', ')
     else:
-        print(my_dict.get(sys.argv[2]))
+        print("The program is called with invalid parameters.")
 
-if len(sys.argv) == 5:
-    if not my_dict.get(sys.argv[2]):
-        my_dict[sys.argv[2]] = list(sys.argv[4])
-    else:
-        my_dict[sys.argv[2]].append(sys.argv[4])
 
-with open(storage_path, 'w') as file:
-    file.write(json.dumps(my_dict))
+if __name__ == '__main__':
+    storage_path = os.path.join(tempfile.gettempdirb(), b'storage.data')
+    args = parse_args()
+    main(args, storage_path)
